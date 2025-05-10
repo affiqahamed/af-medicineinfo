@@ -89,10 +89,25 @@
     .feedback-display ul {
       padding-left: 20px;
     }
+
+    .note {
+      background-color: rgba(255, 255, 255, 0.85);
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      color: #000;
+    }
   </style>
 </head>
 <body>
   <h1>💊 Medicine Info Finder</h1>
+
+  <!-- Note Section -->
+  <div class="note" id="noteBox">
+    <h3>Note</h3>
+    <p id="noteText">This is an important note for users to see.</p>
+  </div>
+
   <input type="text" id="medicineInput" placeholder="Enter medicine name (e.g., Ibuprofen)">
   <button onclick="lookupMedicine()">Search</button>
 
@@ -105,26 +120,18 @@
 
   <p id="error" class="error"></p>
 
-  <!-- Search History Section -->
   <div class="history" id="historyBox" style="display: none;">
     <h3>Previous Searches:</h3>
     <ul id="historyList"></ul>
     <button id="clearHistoryBtn" onclick="clearHistory()">Clear History</button>
   </div>
 
-  <!-- Feedback Section -->
   <div class="feedback">
     <h3 style="margin-top: 40px;">💬 Feedback</h3>
     <input type="text" id="userName" placeholder="Your name">
     <textarea id="feedbackText" placeholder="Write your feedback here..." rows="4"></textarea><br>
     <button onclick="submitFeedback()">Submit Feedback</button>
     <p id="feedbackMsg" style="margin-top: 10px;"></p>
-  </div>
-
-  <!-- Display Feedbacks -->
-  <div class="feedback-display" id="feedbackDisplay" style="display: none;">
-    <h3>User Feedback</h3>
-    <ul id="feedbackList"></ul>
   </div>
 
   <footer>
@@ -221,39 +228,45 @@
         return;
       }
 
-      let feedbackList = JSON.parse(localStorage.getItem("userFeedback")) || [];
-      feedbackList.push({ name: name, text: feedback, date: new Date().toISOString() });
-      localStorage.setItem("userFeedback", JSON.stringify(feedbackList));
+      const data = {
+        data: [
+          {
+            name: name,
+            text: feedback,
+            date: new Date().toLocaleString()
+          }
+        ]
+      };
 
-      document.getElementById("userName").value = "";
-      document.getElementById("feedbackText").value = "";
-      feedbackMsg.style.color = "lightgreen";
-      feedbackMsg.innerText = "Thank you for your feedback!";
-
-      displayFeedbacks();
+      fetch("https://sheetdb.io/api/v1/b8xumudx6ixwu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (response.ok) {
+          feedbackMsg.style.color = "lightgreen";
+          feedbackMsg.innerText = "Thanks! Your feedback has been submitted.";
+          document.getElementById("userName").value = "";
+          document.getElementById("feedbackText").value = "";
+        } else {
+          feedbackMsg.style.color = "red";
+          feedbackMsg.innerText = "Submission failed. Try again.";
+        }
+      })
+      .catch(() => {
+        feedbackMsg.style.color = "red";
+        feedbackMsg.innerText = "Error submitting feedback.";
+      });
     }
 
-    function displayFeedbacks() {
-      const feedbackDisplay = document.getElementById("feedbackDisplay");
-      const feedbackList = document.getElementById("feedbackList");
-      const feedbacks = JSON.parse(localStorage.getItem("userFeedback")) || [];
-
-      if (feedbacks.length > 0) {
-        feedbackDisplay.style.display = "block";
-        feedbackList.innerHTML = "";
-        feedbacks.forEach((item, index) => {
-          const li = document.createElement("li");
-          li.innerText = `${index + 1}. ${item.name}: "${item.text}" (${new Date(item.date).toLocaleString()})`;
-          feedbackList.appendChild(li);
-        });
-      } else {
-        feedbackDisplay.style.display = "none";
-      }
+    function setNoteText(noteContent) {
+      document.getElementById("noteText").innerText = noteContent;
     }
 
     window.onload = function () {
       displayHistory();
-      displayFeedbacks();
+      setNoteText("Enter the correct US generic name to get better results. Example: Acetaminophen for Paracetamol.");
     };
   </script>
 </body>
