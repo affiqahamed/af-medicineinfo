@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medicine Info Finder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      text-align: center;
+      background-image: url('https://i.postimg.cc/VLNk2wJp/1746864814405.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: #fff;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 16px;
+      width: 300px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-left: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .result {
+      margin-top: 30px;
+      background-color: rgba(255, 255, 255, 0.85);
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+      text-align: left;
+      max-width: 600px;
+      color: #000;
+    }
+
+    .error {
+      color: red;
+      margin-top: 20px;
+    }
+
+    footer {
+      margin-top: 50px;
+      color: #ddd;
+      font-size: 14px;
+      text-align: center;
+      opacity: 0.8;
+    }
+
+    .history {
+      margin-top: 20px;
+      text-align: left;
+      background-color: rgba(255, 255, 255, 0.75);
+      padding: 10px;
+      border-radius: 10px;
+      color: #000;
+      max-width: 600px;
+      display: inline-block;
+    }
+
+    .history-item {
+      cursor: pointer;
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .history-item:hover {
+      text-decoration: underline;
+    }
+
+    #clearHistoryBtn {
+      margin-top: 15px;
+      background-color: red;
+      color: #fff;
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+    }
+
+    #clearHistoryBtn:hover {
+      background-color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <h1>💊 Medicine Info Finder</h1>
+  <input type="text" id="medicineInput" placeholder="Enter medicine name (e.g., Ibuprofen)">
+  <button onclick="lookupMedicine()">Search</button>
+
+  <div class="result" id="resultBox" style="display: none;">
+    <h2 id="medTitle"></h2>
+    <p><strong>Generic Name:</strong> <span id="genericName"></span></p>
+    <p><strong>Usage:</strong> <span id="usage"></span></p>
+    <p><strong>Side Effects:</strong> <span id="sideEffects"></span></p>
+  </div>
+
+  <p id="error" class="error"></p>
+
+  <!-- Search History Section -->
+  <div class="history" id="historyBox" style="display: none;">
+    <h3>Previous Searches:</h3>
+    <ul id="historyList"></ul>
+    <button id="clearHistoryBtn" onclick="clearHistory()">Clear History</button>
+  </div>
+
+  <footer>
+    <p>Made by Ahamed Affiq © 2025</p>
+  </footer>
+
+  <script>
+    async function lookupMedicine() {
+      const med = document.getElementById("medicineInput").value.trim();
+      const resultBox = document.getElementById("resultBox");
+      const error = document.getElementById("error");
+
+      resultBox.style.display = "none";
+      error.innerText = "";
+
+      if (!med) {
+        error.innerText = "Please enter a medicine name.";
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://api.fda.gov/drug/label.json?search=openfda.generic_name:"${med}"+openfda.brand_name:"${med}"&limit=1`);
+        const data = await response.json();
+
+        if (data.results && data.results.length > 0) {
+          const medInfo = data.results[0];
+
+          document.getElementById("medTitle").innerText = medInfo.openfda.brand_name?.[0] || med;
+          document.getElementById("genericName").innerText = medInfo.openfda.generic_name?.[0] || "Not available.";
+          document.getElementById("usage").innerText = medInfo.indications_and_usage?.[0] || "Not available.";
+          document.getElementById("sideEffects").innerText = medInfo.warnings?.[0] || "Not available.";
+
+          resultBox.style.display = "block";
+          saveToHistory(med);
+        } else {
+          error.innerText = "No data found for this medicine.";
+        }
+      } catch (err) {
+        console.error(err);
+        error.innerText = "Error retrieving data. Please check your internet connection.";
+      }
+    }
+
+    function saveToHistory(medicine) {
+      let history = JSON.parse(localStorage.getItem("searchHistory")) || [];
+      if (!history.includes(medicine)) {
+        history.push(medicine);
+        localStorage.setItem("searchHistory", JSON.stringify(history));
+      }
+      displayHistory();
+    }
+
+    function displayHistory() {
+      const historyList = document.getElementById("historyList");
+      const historyBox = document.getElementById("historyBox");
+      const history = JSON.parse(localStorage.getItem("searchHistory")) || [];
+
+      if (history.length > 0) {
+        historyBox.style.display = "block";
+        historyList.innerHTML = "";
+        history.forEach(item => {
+          const listItem = document.createElement("li");
+          listItem.classList.add("history-item");
+          listItem.innerText = item;
+          listItem.onclick = () => { searchFromHistory(item) };
+          historyList.appendChild(listItem);
+        });
+      } else {
+        historyBox.style.display = "none";
+      }
+    }
+
+    function searchFromHistory(medicine) {
+      document.getElementById("medicineInput").value = medicine;
+      lookupMedicine();
+    }
+
+    function clearHistory() {
+      localStorage.removeItem("searchHistory");
+      displayHistory();
+    }
+
+    window.onload = displayHistory;
+  </script>
+</body>
+</html>
