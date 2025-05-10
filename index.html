@@ -16,20 +16,24 @@
       color: #fff;
     }
 
-    input {
+    input, textarea {
       padding: 10px;
       font-size: 16px;
-      width: 300px;
+      width: 100%;
+      max-width: 600px;
+      border-radius: 5px;
+      margin-bottom: 10px;
     }
 
     button {
       padding: 10px 20px;
-      margin-left: 10px;
       font-size: 16px;
       cursor: pointer;
+      border: none;
+      border-radius: 5px;
     }
 
-    .result {
+    .result, .history, .feedback-display {
       margin-top: 30px;
       background-color: rgba(255, 255, 255, 0.85);
       padding: 20px;
@@ -53,17 +57,6 @@
       opacity: 0.8;
     }
 
-    .history {
-      margin-top: 20px;
-      text-align: left;
-      background-color: rgba(255, 255, 255, 0.75);
-      padding: 10px;
-      border-radius: 10px;
-      color: #000;
-      max-width: 600px;
-      display: inline-block;
-    }
-
     .history-item {
       cursor: pointer;
       color: #007bff;
@@ -78,14 +71,23 @@
       margin-top: 15px;
       background-color: red;
       color: #fff;
-      padding: 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      border: none;
     }
 
     #clearHistoryBtn:hover {
       background-color: darkred;
+    }
+
+    .feedback button {
+      background-color: #28a745;
+      color: #fff;
+    }
+
+    .feedback button:hover {
+      background-color: #218838;
+    }
+
+    .feedback-display ul {
+      padding-left: 20px;
     }
   </style>
 </head>
@@ -110,11 +112,26 @@
     <button id="clearHistoryBtn" onclick="clearHistory()">Clear History</button>
   </div>
 
+  <!-- Feedback Section -->
+  <div class="feedback">
+    <h3 style="margin-top: 40px;">💬 Feedback</h3>
+    <input type="text" id="userName" placeholder="Your name">
+    <textarea id="feedbackText" placeholder="Write your feedback here..." rows="4"></textarea><br>
+    <button onclick="submitFeedback()">Submit Feedback</button>
+    <p id="feedbackMsg" style="margin-top: 10px;"></p>
+  </div>
+
+  <!-- Display Feedbacks -->
+  <div class="feedback-display" id="feedbackDisplay" style="display: none;">
+    <h3>User Feedback</h3>
+    <ul id="feedbackList"></ul>
+  </div>
+
   <footer>
     <p>Made by Ahamed Affiq © 2025</p>
-     <p style="font-size: 14px; margin-top: 10px; color: #ccc;">
-    Disclaimer: For informational purposes only. Always consult a doctor.
-     </p>
+    <p style="font-size: 14px; margin-top: 10px; color: #ccc;">
+      Disclaimer: For informational purposes only. Always consult a doctor.
+    </p>
   </footer>
 
   <script>
@@ -193,7 +210,52 @@
       displayHistory();
     }
 
-    window.onload = displayHistory;
+    function submitFeedback() {
+      const name = document.getElementById("userName").value.trim();
+      const feedback = document.getElementById("feedbackText").value.trim();
+      const feedbackMsg = document.getElementById("feedbackMsg");
+
+      if (!name || !feedback) {
+        feedbackMsg.style.color = "red";
+        feedbackMsg.innerText = "Please enter your name and feedback.";
+        return;
+      }
+
+      let feedbackList = JSON.parse(localStorage.getItem("userFeedback")) || [];
+      feedbackList.push({ name: name, text: feedback, date: new Date().toISOString() });
+      localStorage.setItem("userFeedback", JSON.stringify(feedbackList));
+
+      document.getElementById("userName").value = "";
+      document.getElementById("feedbackText").value = "";
+      feedbackMsg.style.color = "lightgreen";
+      feedbackMsg.innerText = "Thank you for your feedback!";
+
+      displayFeedbacks();
+    }
+
+    function displayFeedbacks() {
+      const feedbackDisplay = document.getElementById("feedbackDisplay");
+      const feedbackList = document.getElementById("feedbackList");
+      const feedbacks = JSON.parse(localStorage.getItem("userFeedback")) || [];
+
+      if (feedbacks.length > 0) {
+        feedbackDisplay.style.display = "block";
+        feedbackList.innerHTML = "";
+        feedbacks.forEach((item, index) => {
+          const li = document.createElement("li");
+          li.innerText = `${index + 1}. ${item.name}: "${item.text}" (${new Date(item.date).toLocaleString()})`;
+          feedbackList.appendChild(li);
+        });
+      } else {
+        feedbackDisplay.style.display = "none";
+      }
+    }
+
+    window.onload = function () {
+      displayHistory();
+      displayFeedbacks();
+    };
   </script>
 </body>
 </html>
+
